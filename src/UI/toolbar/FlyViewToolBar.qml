@@ -18,6 +18,7 @@ import QGroundControl.Palette
 import QGroundControl.MultiVehicleManager
 import QGroundControl.ScreenTools
 import QGroundControl.Controllers
+import QGroundControl.diab  // diab
 
 Rectangle {
     id:     _root
@@ -98,6 +99,200 @@ Rectangle {
 
         FlyViewToolBarIndicators { id: toolIndicators }
     }
+
+    DroneController {
+        id: droneController
+    }
+
+    QGCToolBarButton {
+        id: diabutton
+        anchors.top: parent.top
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: 150
+        Layout.preferredHeight: viewButtonRow.height
+        Layout.preferredWidth: 30
+        icon.source: "/qmlimages/RidIconYellow.svg"
+        text: qsTr("Open DiAB")
+        onClicked: {
+            diaVentana.open()
+        }
+    }
+
+    Popup {
+        id: diaVentana
+        width: 400
+        height: 300
+        modal: true
+        focus: true
+        closePolicy: Popup.NoAutoClose
+        anchors.centerIn: Overlay.overlay
+
+        Connections {
+            target: droneController
+
+            function onDroneCountChanged(count) {
+                listaDrones.clear()
+                for (var i = 0; i < count; i++) {
+                    listaDrones.append({
+                        id: i,
+                        status: 2,  // Default to Missing (2)
+                    name: "Drone " + (i+1)
+                    })
+                }
+            }
+
+            function onDroneStatusChanged(droneId, status) {  // Changed parameter name from 'active' to 'status'
+                if (droneId < listaDrones.count) {
+                    listaDrones.setProperty(droneId, "status", status)  // Changed property name from 'active' to 'status'
+                }
+            }
+        }
+
+        // Model for drone list
+        ListModel {
+            id: listaDrones
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 10
+            spacing: 10
+
+            Text {
+                id: statusText
+                text: "Initializing..."
+                font.bold: true
+                Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                color: "#f0f0f0"
+                border.color: "#c0c0c0"
+
+                ListView {
+                    anchors.fill: parent
+                    anchors.margins: 5
+                    model: listaDrones
+                    clip: true
+
+                    delegate: Rectangle {
+                        width: parent.width
+                        height: 60
+                        // Change color based on status instead of active boolean
+                        color: {
+                            switch(model.status) {
+                                case 0: return "#d0f0d0";  // Ready - green background
+                                case 1: return "#f0e0c0";  // NotReady - amber background
+                                case 2: return "#f0d0d0";  // Missing - red background
+                                default: return "#e0e0e0";  // Unknown - gray background
+                            }
+                        }
+                        border.color: "#a0a0a0"
+                        radius: 4
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 5
+                            spacing: 5
+
+                            // Row for drone information
+                            Row {
+                                Layout.fillWidth: true
+                                spacing: 10
+
+                                Text {
+                                    text: name
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    font.bold: true
+                                }
+
+                                Text {
+                                    // Replace with tristate text
+                                    text: {
+                                        switch(model.status) {
+                                            case 0: return "READY";
+                                            case 1: return "NOT READY";
+                                            case 2: return "MISSING";
+                                            default: return "UNKNOWN";
+                                        }
+                                    }
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    // Update color to match status
+                                    color: {
+                                        switch(model.status) {
+                                            case 0: return "green";
+                                            case 1: return "orange";
+                                            case 2: return "red";
+                                            default: return "gray";
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Row for buttons - simplify to just ARM button
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 5
+
+                                // ARM button (renamed from TAKEOFF)
+                                QGCButton {
+                                    text: "ARM"
+                                    enabled: model.status === 0  // Only enabled for READY drones
+                                    Layout.fillWidth: true
+                                    opacity: enabled ? 1.0 : 0.5
+                                    onClicked: {
+                                        droneController.sendArm(id)
+                                    }
+                                }
+
+                                // LAND button is removed completely
+                            }
+                        }
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                QGCButton {
+                    text: "Connect"
+                    enabled: !droneController.isConnected
+                    onClicked: droneController.startCommunications()
+                    Layout.fillWidth: true
+                }
+
+                QGCButton {
+                    text: "Disconnect"
+                    enabled: droneController.isConnected
+                    onClicked: droneController.stopCommunications()
+                    Layout.fillWidth: true
+                }
+
+                QGCButton {
+                    text: "Close"
+                    onClicked: diaVentana.close()
+                    Layout.fillWidth: true
+                }
+            }
+        }
+
+        onOpened: {
+            // Automatically connect when opened
+            droneController.startCommunications()
+        }
+
+        onClosed: {
+            // Disconnect when closed
+            droneController.stopCommunications()
+        }
+    }
+
+    // DIAB END
 
     //-------------------------------------------------------------------------
     //-- Branding Logo

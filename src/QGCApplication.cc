@@ -70,6 +70,8 @@
 #include "VehicleComponent.h"
 #include "VideoManager.h"
 
+#include "Gram/DroneController.h" // DIAB
+
 #ifndef QGC_DISABLE_MAVLINK_INSPECTOR
 #include "MAVLinkInspectorController.h"
 #endif
@@ -309,7 +311,7 @@ void QGCApplication::init()
     qmlRegisterType<FirmwareUpgradeController>("QGroundControl.Controllers", 1, 0, "FirmwareUpgradeController");
 #endif
     qmlRegisterType<JoystickConfigController>("QGroundControl.Controllers", 1, 0, "JoystickConfigController");
-
+	qmlRegisterType<DroneController>("QGroundControl.diab", 1, 0, "DroneController"); // DIAB
 
     qmlRegisterSingletonType<ShapeFileHelper>("QGroundControl.ShapeFileHelper", 1, 0, "ShapeFileHelper", shapeFileHelperSingletonFactory);
 
