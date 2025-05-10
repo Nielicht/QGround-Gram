@@ -8,6 +8,7 @@ libs/lib/Frameworks/GStreamer.framework
 *.swp
 *.nfs
 CMakeFiles
+docu.md
 tags
 build*/
 obj
